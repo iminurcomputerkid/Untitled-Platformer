@@ -1,0 +1,8 @@
+loose leaf paper background
+hspd
+vspd
+jump on an enemy to defeat
+arrow keys to move
+stickman character
+class for stickman
+maybe plants on grounnd and nature in background (no color)
