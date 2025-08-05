@@ -1,4 +1,5 @@
 import pygame
+<<<<<<< HEAD
 import sys
 
 pygame.init()
@@ -231,3 +232,51 @@ while running:
 
 pygame.quit()
 sys.exit()
+=======
+from pygame.locals import *
+
+pygame.init()
+
+WIDTH = 1300
+HEIGHT = 800
+
+window = pygame.display.set_mode((WIDTH, HEIGHT), 0 , 32)
+pygame.display.set_caption('Our random ahh game')
+window.fill((240, 240, 240))
+
+back = pygame.Surface((WIDTH, HEIGHT))
+background = back.convert()
+background.fill((240, 240, 240))
+
+class Player:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def horizontal:
+        #left and right
+    def vertical:
+        #up and down
+
+running = True
+
+while running:
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            running = False
+            #add more stuff
+        elif event.type == KEYDOWN:
+            if event.key == K_LEFT:
+                #left
+            elif event.key == K_RIGHT:
+                #right
+            elif event.key == K_UP:
+                #jump
+            elif event.key == K_DOWN:
+                #fall faster (maybe go through some platforms)
+        elif event.type == KEYUP:
+            if event.key == K_LEFT or K_RIGHT:
+                #no move
+            elif event.key == K_DOWN:
+                #fall slower (dont go through platforms)
+>>>>>>> 1a6c071d644b80a11e091c2b893d13f2cbbe6e91
