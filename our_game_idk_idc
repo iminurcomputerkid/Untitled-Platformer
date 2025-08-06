@@ -1,17 +1,19 @@
 import pygame
-<<<<<<< HEAD
 import sys
 
 pygame.init()
 
+#dropping through platforms
+drop_through_timer = 0
+
 # Screen setup
 WIDTH, HEIGHT = 1400, 820
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Stickman with Moving Grey Platforms")
+pygame.display.set_caption("Untitled Platformer *kahoot music plays*")
 
 # Colors
 BLACK = (0, 0, 0)
-LIGHT_BLUE = (135, 206, 250)  # Light sky blue
+LIGHT_BLUE = (135, 206, 250)
 GREEN = (34, 139, 34)
 GREY = (150, 150, 150)
 
@@ -23,7 +25,7 @@ FPS = 60
 x = WIDTH // 2
 y = 450
 speed = 5
-jump_force = -15
+jump_force = -20
 gravity = 1
 velocity_y = 0
 is_jumping = False
@@ -52,7 +54,11 @@ class Platform:
 
     def update(self):
         self.x += self.speed * self.direction
-        if self.x <= self.left_bound or self.x + self.width >= self.right_bound:
+        if self.x <= self.left_bound:
+            self.x = self.left_bound
+            self.direction *= -1    
+        elif self.x + self.width >= self.right_bound:
+            self.x = self.right_bound - self.width
             self.direction *= -1
 
     def draw(self, surface):
@@ -65,7 +71,8 @@ platforms = [
     Platform(900, 300, 100, 15, 1.5, 850, 1100),
     Platform(500, 250, 90, 15, 1.2, 450, 700),
     Platform(750, 200, 110, 15, 2, 700, 900),
-    Platform(1100, 180, 140, 15, 1.8, 1050, 1300)
+    Platform(1100, 180, 140, 15, 1.8, 1050, 1300),
+    Platform(200, 100, 40, 15, 4.99, 100, 1200)
 ]
 
 # Animation
@@ -91,13 +98,35 @@ while running:
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
         move_dir = 1
         is_moving = True
-
-    if keys[pygame.K_SPACE] and not is_jumping:
+    if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE] and not is_jumping:
         velocity_y = jump_force
         is_jumping = True
 
     velocity_y += gravity
-    y += velocity_y
+
+    # Save old y for interpolation
+    original_y = y
+    steps = int(abs(velocity_y)) + 1  # Number of steps to avoid tunneling
+    dy = velocity_y / steps
+
+    on_platform = False
+    for step in range(steps):
+        y += dy
+        stickman_feet_y = y + 15 + 40 + 30  # Update for new y
+
+        for platform in platforms:
+            platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
+            stickman_rect = pygame.Rect(x - 15, stickman_feet_y - dy, 30, 5)
+
+            if stickman_rect.colliderect(platform_rect) and velocity_y >= 0 and stickman_feet_y <= platform.y + dy + 5:
+                y = platform.y - (15 + 40 + 30)
+                velocity_y = 0
+                is_jumping = False
+                on_platform = True
+                break
+        if on_platform:
+            break
+
 
     on_platform = False
     stickman_feet_y = y + 15 + 40 + 30  # head radius + body + leg length
@@ -232,51 +261,3 @@ while running:
 
 pygame.quit()
 sys.exit()
-=======
-from pygame.locals import *
-
-pygame.init()
-
-WIDTH = 1300
-HEIGHT = 800
-
-window = pygame.display.set_mode((WIDTH, HEIGHT), 0 , 32)
-pygame.display.set_caption('Our random ahh game')
-window.fill((240, 240, 240))
-
-back = pygame.Surface((WIDTH, HEIGHT))
-background = back.convert()
-background.fill((240, 240, 240))
-
-class Player:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def horizontal:
-        #left and right
-    def vertical:
-        #up and down
-
-running = True
-
-while running:
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            running = False
-            #add more stuff
-        elif event.type == KEYDOWN:
-            if event.key == K_LEFT:
-                #left
-            elif event.key == K_RIGHT:
-                #right
-            elif event.key == K_UP:
-                #jump
-            elif event.key == K_DOWN:
-                #fall faster (maybe go through some platforms)
-        elif event.type == KEYUP:
-            if event.key == K_LEFT or K_RIGHT:
-                #no move
-            elif event.key == K_DOWN:
-                #fall slower (dont go through platforms)
->>>>>>> 1a6c071d644b80a11e091c2b893d13f2cbbe6e91
