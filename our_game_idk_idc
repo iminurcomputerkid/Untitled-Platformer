@@ -3,9 +3,6 @@ import sys
 
 pygame.init()
 
-# Dropping through platforms
-drop_through_timer = 0
-
 # Screen setup
 WIDTH, HEIGHT = 1400, 820
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -15,7 +12,7 @@ pygame.display.set_caption("Untitled Platformer *kahoot music plays*")
 BLACK = (0, 0, 0)
 LIGHT_BLUE = (135, 206, 250)
 GREEN = (34, 139, 34)
-GREY = (150, 150, 150)
+GREY = (100, 100, 100)
 
 # Clock
 clock = pygame.time.Clock()
