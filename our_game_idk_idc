@@ -98,7 +98,7 @@ while running:
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
         move_dir = 1
         is_moving = True
-    if keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE] and not is_jumping:
+    if (keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]) and not is_jumping:
         velocity_y = jump_force
         is_jumping = True
 
