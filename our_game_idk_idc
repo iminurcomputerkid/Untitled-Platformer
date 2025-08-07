@@ -37,6 +37,13 @@ GROUND_SEGMENT_WIDTH = 100
 LEFT_BOUNDARY = WIDTH * 0.10
 RIGHT_BOUNDARY = WIDTH * 0.90
 
+# Enemy setup
+enemy_x = 100
+enemy_y = GROUND_Y
+enemy_speed = 2
+enemy_color = (255, 0, 0)
+sword_length = 25
+
 # Floating platform class
 class Platform:
     def __init__(self, x, y, width, height, speed, left_bound, right_bound):
@@ -86,7 +93,7 @@ walk_frame = 0
 walk_timer = 0
 is_moving = False
 
-# Font for win screen
+# Font for text
 font = pygame.font.SysFont(None, 72)
 
 running = True
@@ -160,7 +167,8 @@ while running:
             ground_scroll -= move_dir * GROUND_SCROLL_SPEED
             for platform in platforms:
                 platform.x -= move_dir * GROUND_SCROLL_SPEED
-            star_rect.x -= move_dir * GROUND_SCROLL_SPEED  # Move star with scroll
+            star_rect.x -= move_dir * GROUND_SCROLL_SPEED
+            enemy_x -= move_dir * GROUND_SCROLL_SPEED  # move enemy with world
 
     for platform in platforms:
         platform.update()
@@ -216,9 +224,7 @@ while running:
         left_foot = (x - 20, hip_y + 30)
         pygame.draw.line(screen, BLACK, body_bottom, left_knee, 2)
         pygame.draw.line(screen, BLACK, left_knee, left_foot, 2)
-
-        right_knee = (x + 10, hip_y + 15)
-        right_foot = (x + 20, hip_y + 30)
+                         
         pygame.draw.line(screen, BLACK, body_bottom, right_knee, 2)
         pygame.draw.line(screen, BLACK, right_knee, right_foot, 2)
 
@@ -266,11 +272,48 @@ while running:
     # Player bounding box
     player_rect = pygame.Rect(x - 15, y, 30, head_radius + body_length + leg_length)
 
-    # Star collection
-    if not star_collected and player_rect.colliderect(star_rect):
+    # === ENEMY LOGIC ===
+    # Chase player
+    if abs(enemy_x - x) > 5:
+        if enemy_x < x:
+            enemy_x += enemy_speed
+        else:
+            enemy_x -= enemy_speed
+
+    # Enemy drawing
+    enemy_head_center = (enemy_x, enemy_y)
+    enemy_body_top = (enemy_x, enemy_y + head_radius)
+    enemy_body_bottom = (enemy_x, enemy_y + head_radius + body_length)
+    enemy_shoulder_y = enemy_y + head_radius + 5
+    enemy_hip_y = enemy_body_bottom[1]
+
+    pygame.draw.circle(screen, enemy_color, enemy_head_center, head_radius, 2)
+    pygame.draw.line(screen, enemy_color, enemy_body_top, enemy_body_bottom, 2)
+
+    # Enemy arms
+    pygame.draw.line(screen, enemy_color, (enemy_x, enemy_shoulder_y), (enemy_x - 20, enemy_shoulder_y + 10), 2)
+    pygame.draw.line(screen, enemy_color, (enemy_x, enemy_shoulder_y), (enemy_x + 20, enemy_shoulder_y + 10), 2)
+
+    # Enemy legs
+    pygame.draw.line(screen, enemy_color, enemy_body_bottom, (enemy_x - 10, enemy_hip_y + 30), 2)
+    pygame.draw.line(screen, enemy_color, enemy_body_bottom, (enemy_x + 10, enemy_hip_y + 30), 2)
+
+    # Sword (right hand)
+    sword_start = (enemy_x + 20, enemy_shoulder_y + 10)
+    sword_end = (sword_start[0] + sword_length, sword_start[1])
+    pygame.draw.line(screen, (200, 200, 200), sword_start, sword_end, 3)
+
+    # Enemy bounding box
+    enemy_rect = pygame.Rect(enemy_x - 15, enemy_y, 30, head_radius + body_length + leg_length)
+
+    # === COLLISIONS ===
+    if player_rect.colliderect(star_rect) and not star_collected:
         star_collected = True
 
-    # Win screen
+    if player_rect.colliderect(enemy_rect):
+        game_over_text = font.render("GAME OVER!", True, (200, 0, 0))
+        screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 + 60))
+
     if star_collected:
         win_text = font.render("YOU WIN!", True, BLACK)
         screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - win_text.get_height() // 2))

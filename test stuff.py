@@ -1,0 +1,333 @@
+import pygame
+import sys
+
+pygame.init()
+
+# Screen setup
+WIDTH, HEIGHT = 1400, 800
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Untitled Platformer *kahoot music plays*")
+
+# Colors
+BLACK = (0, 0, 0)
+LIGHT_BLUE = (135, 206, 250)
+GREEN = (34, 139, 34)
+GREY = (100, 100, 100)
+
+# Clock
+clock = pygame.time.Clock()
+FPS = 60
+
+# Stickman physics
+x = WIDTH // 2
+y = 450
+speed = 5
+jump_force = -20
+gravity = 1
+velocity_y = 0
+is_jumping = False
+
+# Ground settings
+GROUND_Y = 450
+ground_scroll = 0
+GROUND_SCROLL_SPEED = 5
+GROUND_SEGMENT_WIDTH = 100
+
+# Movement boundaries
+LEFT_BOUNDARY = WIDTH * 0.10
+RIGHT_BOUNDARY = WIDTH * 0.90
+
+# Enemy setup
+enemy_x = 100
+enemy_y = GROUND_Y
+enemy_speed = 2
+enemy_color = (255, 0, 0)
+sword_length = 25
+
+# Floating platform class
+class Platform:
+    def __init__(self, x, y, width, height, speed, left_bound, right_bound):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.speed = speed
+        self.left_bound = left_bound
+        self.right_bound = right_bound
+        self.direction = 1
+
+    def update(self):
+        self.x += self.speed * self.direction
+        if self.x <= self.left_bound:
+            self.x = self.left_bound
+            self.direction *= -1
+        elif self.x + self.width >= self.right_bound:
+            self.x = self.right_bound - self.width
+            self.direction *= -1
+
+    def draw(self, surface):
+        pygame.draw.rect(surface, GREY, (self.x, self.y, self.width, self.height))
+
+# Platforms
+platforms = [
+    Platform(300, 400, 120, 15, 2, 250, 450),
+    Platform(600, 350, 150, 15, 3, 550, 800),
+    Platform(900, 300, 100, 15, 1.5, 850, 1100),
+    Platform(750, 200, 110, 15, 2, 700, 900),
+    Platform(1100, 180, 140, 15, 1.8, 1050, 1300),
+    Platform(200, 100, 40, 15, 7.5, 100, 1200)
+]
+
+# Star collectible
+star_img = pygame.Surface((30, 30), pygame.SRCALPHA)
+pygame.draw.polygon(star_img, (255, 215, 0), [
+    (15, 0), (18, 10), (30, 10), (20, 18),
+    (24, 30), (15, 22), (6, 30), (10, 18),
+    (0, 10), (12, 10)
+])
+star_rect = star_img.get_rect(center=(80, 70))
+star_collected = False
+
+# Animation
+walk_frame = 0
+walk_timer = 0
+is_moving = False
+
+# Font for text
+font = pygame.font.SysFont(None, 72)
+
+game_over = False  # Flag for game over
+
+running = True
+while running:
+    screen.fill(LIGHT_BLUE)
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    if not game_over:
+        keys = pygame.key.get_pressed()
+        is_moving = False
+        move_dir = 0
+
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            move_dir = -1
+            is_moving = True
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            move_dir = 1
+            is_moving = True
+        if (keys[pygame.K_UP] or keys[pygame.K_w] or keys[pygame.K_SPACE]) and not is_jumping:
+            velocity_y = jump_force
+            is_jumping = True
+        speed = 5
+        if keys[pygame.K_LSHIFT]:
+            speed = 10
+
+        velocity_y += gravity
+        steps = int(abs(velocity_y)) + 1
+        dy = velocity_y / steps
+
+        on_platform = False
+        for step in range(steps):
+            y += dy
+            stickman_feet_y = y + 15 + 40 + 30
+            for platform in platforms:
+                platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
+                stickman_rect = pygame.Rect(x - 15, stickman_feet_y - dy, 30, 5)
+                if stickman_rect.colliderect(platform_rect) and velocity_y >= 0 and stickman_feet_y <= platform.y + dy + 5:
+                    y = platform.y - (15 + 40 + 30)
+                    velocity_y = 0
+                    is_jumping = False
+                    on_platform = True
+                    break
+            if on_platform:
+                break
+
+        on_platform = False
+        stickman_feet_y = y + 15 + 40 + 30
+        for platform in platforms:
+            platform_rect = pygame.Rect(platform.x, platform.y, platform.width, platform.height)
+            stickman_rect = pygame.Rect(x - 15, stickman_feet_y - velocity_y, 30, 5)
+            if stickman_rect.colliderect(platform_rect) and velocity_y >= 0 and stickman_feet_y <= platform.y + velocity_y + 5:
+                y = platform.y - (15 + 40 + 30)
+                velocity_y = 0
+                is_jumping = False
+                on_platform = True
+                break
+
+        if not on_platform and y >= GROUND_Y:
+            y = GROUND_Y
+            velocity_y = 0
+            is_jumping = False
+
+        if move_dir != 0:
+            new_x = x + move_dir * speed
+            if LEFT_BOUNDARY < new_x < RIGHT_BOUNDARY:
+                x = new_x
+            else:
+                ground_scroll -= move_dir * GROUND_SCROLL_SPEED
+                for platform in platforms:
+                    platform.x -= move_dir * GROUND_SCROLL_SPEED
+                star_rect.x -= move_dir * GROUND_SCROLL_SPEED
+                enemy_x -= move_dir * GROUND_SCROLL_SPEED  # move enemy with world
+
+        for platform in platforms:
+            platform.update()
+
+        if is_moving and not is_jumping:
+            walk_timer += 1
+            if walk_timer >= 10:
+                walk_timer = 0
+                walk_frame = (walk_frame + 1) % 2
+        else:
+            walk_frame = 0
+
+        # Draw ground
+        num_segments = (WIDTH // GROUND_SEGMENT_WIDTH) + 2
+        for i in range(num_segments):
+            segment_x = (i * GROUND_SEGMENT_WIDTH) + (ground_scroll % GROUND_SEGMENT_WIDTH) - GROUND_SEGMENT_WIDTH
+            pygame.draw.rect(screen, GREEN, (segment_x, GROUND_Y + 40, GROUND_SEGMENT_WIDTH, HEIGHT - (GROUND_Y + 40)))
+
+        for platform in platforms:
+            platform.draw(screen)
+
+        # Draw the star if not collected
+        if not star_collected:
+            screen.blit(star_img, star_rect.topleft)
+
+        # Stickman drawing
+        head_radius = 15
+        body_length = 40
+        arm_length = 20
+        leg_length = 30
+
+        head_center = (x, y)
+        body_top = (x, y + head_radius)
+        body_bottom = (x, y + head_radius + body_length)
+        shoulder_y = y + head_radius + 5
+        hip_y = body_bottom[1]
+
+        pygame.draw.circle(screen, BLACK, head_center, head_radius, 2)
+        pygame.draw.line(screen, BLACK, body_top, body_bottom, 2)
+
+        if is_jumping:
+            left_elbow = (x - 15, shoulder_y - 10)
+            left_hand = (x - 25, shoulder_y - 25)
+            pygame.draw.line(screen, BLACK, (x, shoulder_y), left_elbow, 2)
+            pygame.draw.line(screen, BLACK, left_elbow, left_hand, 2)
+
+            right_elbow = (x + 15, shoulder_y - 10)
+            right_hand = (x + 25, shoulder_y - 25)
+            pygame.draw.line(screen, BLACK, (x, shoulder_y), right_elbow, 2)
+            pygame.draw.line(screen, BLACK, right_elbow, right_hand, 2)
+
+            left_knee = (x - 10, hip_y + 15)
+            left_foot = (x - 20, hip_y + 30)
+            pygame.draw.line(screen, BLACK, body_bottom, left_knee, 2)
+            pygame.draw.line(screen, BLACK, left_knee, left_foot, 2)
+
+            right_knee = (x + 10, hip_y + 15)
+            right_foot = (x + 20, hip_y + 30)
+            pygame.draw.line(screen, BLACK, body_bottom, right_knee, 2)
+            pygame.draw.line(screen, BLACK, right_knee, right_foot, 2)
+
+        elif is_moving:
+            if walk_frame == 0:
+                left_elbow = (x - 15, shoulder_y + 5)
+                left_hand = (x - 25, shoulder_y + 15)
+                pygame.draw.line(screen, BLACK, (x, shoulder_y), left_elbow, 2)
+                pygame.draw.line(screen, BLACK, left_elbow, left_hand, 2)
+
+                right_elbow = (x + 15, shoulder_y)
+                right_hand = (x + 25, shoulder_y - 5)
+                pygame.draw.line(screen, BLACK, (x, shoulder_y), right_elbow, 2)
+                pygame.draw.line(screen, BLACK, right_elbow, right_hand, 2)
+
+                left_knee = (x - 10, hip_y + 15)
+                left_foot = (x - 20, hip_y + 30)
+                pygame.draw.line(screen, BLACK, body_bottom, left_knee, 2)
+                pygame.draw.line(screen, BLACK, left_knee, left_foot, 2)
+
+                pygame.draw.line(screen, BLACK, body_bottom, (x + 10, hip_y + 30), 2)
+            else:
+                right_elbow = (x + 15, shoulder_y + 5)
+                right_hand = (x + 25, shoulder_y + 15)
+                pygame.draw.line(screen, BLACK, (x, shoulder_y), right_elbow, 2)
+                pygame.draw.line(screen, BLACK, right_elbow, right_hand, 2)
+
+                left_elbow = (x - 15, shoulder_y)
+                left_hand = (x - 25, shoulder_y - 5)
+                pygame.draw.line(screen, BLACK, (x, shoulder_y), left_elbow, 2)
+                pygame.draw.line(screen, BLACK, left_elbow, left_hand, 2)
+
+                right_knee = (x + 10, hip_y + 15)
+                right_foot = (x + 20, hip_y + 30)
+                pygame.draw.line(screen, BLACK, body_bottom, right_knee, 2)
+                pygame.draw.line(screen, BLACK, right_knee, right_foot, 2)
+
+                pygame.draw.line(screen, BLACK, body_bottom, (x - 10, hip_y + 30), 2)
+        else:
+            pygame.draw.line(screen, BLACK, (x - 20, shoulder_y), (x - 5, shoulder_y), 2)
+            pygame.draw.line(screen, BLACK, (x + 20, shoulder_y), (x + 5, shoulder_y), 2)
+            pygame.draw.line(screen, BLACK, body_bottom, (x - 10, hip_y + 30), 2)
+            pygame.draw.line(screen, BLACK, body_bottom, (x + 10, hip_y + 30), 2)
+
+        # Player bounding box
+        player_rect = pygame.Rect(x - 15, y, 30, head_radius + body_length + leg_length)
+
+        # === ENEMY LOGIC ===
+        # Chase player
+        if abs(enemy_x - x) > 5:
+            if enemy_x < x:
+                enemy_x += enemy_speed
+            else:
+                enemy_x -= enemy_speed
+
+        # Enemy drawing
+        enemy_head_center = (enemy_x, enemy_y)
+        enemy_body_top = (enemy_x, enemy_y + head_radius)
+        enemy_body_bottom = (enemy_x, enemy_y + head_radius + body_length)
+        enemy_shoulder_y = enemy_y + head_radius + 5
+        enemy_hip_y = enemy_body_bottom[1]
+
+        pygame.draw.circle(screen, enemy_color, enemy_head_center, head_radius, 2)
+        pygame.draw.line(screen, enemy_color, enemy_body_top, enemy_body_bottom, 2)
+
+        # Enemy arms
+        pygame.draw.line(screen, enemy_color, (enemy_x, enemy_shoulder_y), (enemy_x - 20, enemy_shoulder_y + 10), 2)
+        pygame.draw.line(screen, enemy_color, (enemy_x, enemy_shoulder_y), (enemy_x + 20, enemy_shoulder_y + 10), 2)
+
+        # Enemy legs
+        pygame.draw.line(screen, enemy_color, enemy_body_bottom, (enemy_x - 10, enemy_hip_y + 30), 2)
+        pygame.draw.line(screen, enemy_color, enemy_body_bottom, (enemy_x + 10, enemy_hip_y + 30), 2)
+
+        # Sword (right hand)
+        sword_start = (enemy_x + 20, enemy_shoulder_y + 10)
+        sword_end = (sword_start[0] + sword_length, sword_start[1])
+        pygame.draw.line(screen, (200, 200, 200), sword_start, sword_end, 3)
+
+        # Enemy bounding box
+        enemy_rect = pygame.Rect(enemy_x - 15, enemy_y, 30, head_radius + body_length + leg_length)
+
+        # === COLLISIONS ===
+        if player_rect.colliderect(star_rect) and not star_collected:
+            star_collected = True
+
+        if player_rect.colliderect(enemy_rect):
+            game_over = True  # Set game over flag
+
+    else:
+        # Draw everything static on game over screen
+        game_over_text = font.render("GAME OVER!", True, (200, 0, 0))
+        screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 + 60))
+
+    if star_collected:
+        win_text = font.render("YOU WIN!", True, BLACK)
+        screen.blit(win_text, (WIDTH // 2 - win_text.get_width() // 2, HEIGHT // 2 - win_text.get_height() // 2))
+
+    pygame.display.flip()
+    clock.tick(FPS)
+
+pygame.quit()
+sys.exit()
