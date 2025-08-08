@@ -37,7 +37,7 @@ RIGHT_BOUNDARY = WIDTH * 0.90
 
 # Enemy setup
 enemy_x, enemy_y = 100, GROUND_Y
-enemy_speed = 2
+enemy_speed = 6
 sword_length = 25
 
 # Platform class
@@ -281,7 +281,7 @@ while running:
                     (WIDTH//2 - 150, HEIGHT//2 + 30))
 
         # Exit after 3 seconds
-        if pygame.time.get_ticks() - game_end_time > 3000:
+        if pygame.time.get_ticks() - game_end_time > 1000:
             running = False
 
     pygame.display.flip()
